@@ -311,4 +311,136 @@ body.purpose-tour .tour-only{display:block}
 
         <div class="checkbox-group">
           <input type="checkbox" id="agree" required>
-          <label for="agree">YSタレントが取得した個人情報を、本件のご案内および採用検討のた
+          <label for="agree">YSタレントが取得した個人情報を、本件のご案内および採用検討のためのご連絡目的で利用することに同意します。</label>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">この内容でメール送信を開始する</button>
+        <p style="font-size:11px;color:#6b7280;margin-top:10px;text-align:center;line-height:1.6">
+          ボタンを押すと、お使いのメールソフトが起動し申込内容が自動入力されます。<br>そのまま「送信」を押してお申込み完了です。
+        </p>
+      </form>
+    </div>
+
+    <div class="body success" id="successArea">
+      <div class="success-icon">✓</div>
+      <h2>メールソフトを起動しました</h2>
+      <p>お使いのメールソフトに申込内容が自動入力されています。<br><strong style="color:#dc2626">メール画面で「送信」ボタンを押してお申込み完了</strong> です。</p>
+      <div class="summary" id="summary"></div>
+      <p style="margin-top:16px;font-size:11px;color:#6b7280">
+        メールソフトが起動しない場合は、お手数ですが <strong style="color:#1e3a8a">support@ystalent.co.jp</strong> 宛に直接ご連絡ください。<br>
+        YSタレントの担当者より3営業日以内にご連絡差し上げます。
+      </p>
+    </div>
+
+
+    <div class="footer">
+      <strong>株式会社YSタレント</strong> × <strong>Flora Talent Indonesia</strong><br>
+      登録支援機関 ｜ インドネシア送り出し機関（P3MI / SOライセンス取得）
+    </div>
+  </div>
+</div>
+
+<script>
+// 希望種別の切り替え
+function applyPurpose() {
+  const isTour = document.getElementById('purpose-tour').checked;
+  document.body.className = isTour ? 'purpose-tour' : 'purpose-meeting';
+  document.getElementById('purpose-meeting-card').classList.toggle('selected', !isTour);
+  document.getElementById('purpose-tour-card').classList.toggle('selected', isTour);
+  document.getElementById('submitBtn').textContent = isTour
+    ? 'ツアー申込メールを送信'
+    : '打合せ希望のメールを送信';
+}
+document.querySelectorAll('input[name="purpose"]').forEach(r => r.addEventListener('change', applyPurpose));
+applyPurpose();
+
+document.getElementById('signupForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const get = id => (document.getElementById(id).value || '').trim();
+  const isTour = document.getElementById('purpose-tour').checked;
+  const purposeLabel = isTour ? 'ツアー申込' : '打合せ希望';
+  const topics = Array.from(document.getElementById('topics').selectedOptions).map(o => o.value);
+  const meetingTimes = Array.from(document.querySelectorAll('.meeting-time:checked')).map(c => c.value);
+
+  // 必須項目チェック（共通）
+  const required = ['company','industry','size','name','phone','email'];
+  if (isTour) required.push('attendees');
+  for (const id of required) {
+    if (!get(id)) {
+      alert('必須項目を入力してください');
+      return;
+    }
+  }
+  if (!document.getElementById('agree').checked) {
+    alert('個人情報の取扱いに同意してください');
+    return;
+  }
+
+  // 共通本文
+  const lines = [
+    `【${purposeLabel}】`,
+    '※下記内容で間違いなければ、このまま「送信」ボタンを押してください。',
+    '',
+    '━━━ 会社情報 ━━━',
+    '会社名: ' + get('company'),
+    '業種: ' + get('industry'),
+    '従業員数: ' + get('size'),
+    '',
+    '━━━ ご担当者様 ━━━',
+    'お名前: ' + get('name'),
+    '部署・役職: ' + (get('position') || '（未入力）'),
+    '電話番号: ' + get('phone'),
+    'メール: ' + get('email'),
+    ''
+  ];
+
+  if (isTour) {
+    lines.push('━━━ ツアー参加について ━━━');
+    lines.push('参加予定人数: ' + get('attendees'));
+    lines.push('採用検討時期: ' + (get('timing-tour') || '（未入力）'));
+  } else {
+    lines.push('━━━ 打合せのご希望 ━━━');
+    lines.push('打合せ方法: ' + (get('meetingMethod') || '（未指定）'));
+    lines.push('採用検討時期: ' + (get('timing') || '（未入力）'));
+    lines.push('ご希望日時帯: ' + (meetingTimes.length ? meetingTimes.join('、') : '（未選択）'));
+  }
+  lines.push('');
+  lines.push('━━━ ご関心・ご要望 ━━━');
+  lines.push('関心テーマ: ' + (topics.length ? topics.join('、') : '（未選択）'));
+  lines.push('その他ご要望: ' + (get('notes') || '（特になし）'));
+  lines.push('');
+  lines.push('━━━━━━━━━━━━━━━━');
+  lines.push('送信元: ' + location.href.split('?')[0]);
+  lines.push('日時: ' + new Date().toLocaleString('ja-JP'));
+
+  const body = lines.join('\n');
+  const subject = `【${purposeLabel}】${isTour ? 'インドネシア現地面接会＆視察ツアー' : '外国人ドライバー導入のご相談'} ／ ${get('company')}`;
+  const mailto = 'mailto:support@ystalent.co.jp'
+    + '?subject=' + encodeURIComponent(subject)
+    + '&body=' + encodeURIComponent(body)
+    + '&cc=' + encodeURIComponent(get('email'));
+
+  window.location.href = mailto;
+
+  // サマリー
+  const summaryParts = [
+    `<strong>${purposeLabel} 内容（控え）</strong>`,
+    `会社名: ${get('company')}`,
+    `ご担当者: ${get('name')}${get('position') ? ' / ' + get('position') : ''}`,
+    `電話: ${get('phone')}`,
+    `Email: ${get('email')}`
+  ];
+  if (isTour) {
+    summaryParts.push(`参加予定: ${get('attendees')}`);
+  } else {
+    if (get('meetingMethod')) summaryParts.push(`打合せ方法: ${get('meetingMethod')}`);
+    if (meetingTimes.length) summaryParts.push(`希望日時: ${meetingTimes.join('、')}`);
+  }
+  if (topics.length) summaryParts.push(`関心テーマ: ${topics.join('、')}`);
+  if (get('notes')) summaryParts.push(`ご要望: ${get('notes')}`);
+
+  document.getElementById('summary').innerHTML = summaryParts.join('<br>');
+  setTimeout(function() {
+    document.getElementById('formArea').style.display = 'none';
+    document.getElementById('successArea').classList.add('show');
+    wind
